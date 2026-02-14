@@ -30,7 +30,6 @@ public class AudioSenderThread implements Runnable {
         // We dont need to know its port number as we never send anything to it.
         // We need the try and catch block to make sure no errors occur.
 
-        // DatagramSocket sending_socket;
         try {
             sending_socket = new DatagramSocket();
             sending_socket.setSendBufferSize(1024 * 1024);
