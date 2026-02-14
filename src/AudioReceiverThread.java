@@ -53,6 +53,7 @@ public class AudioReceiverThread implements Runnable {
                 String received = new String(buffer, 0, packet.getLength());
                 if (received.equals("END")) {
                     running = false;
+                    System.out.println("Received END packet. Stopping...");
                 } else {
                     // Print when starting to play
                     if (blockCount == 0) {
