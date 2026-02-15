@@ -1,4 +1,5 @@
 import java.net.*;
+import java.net.SocketTimeoutException;
 import javax.sound.sampled.LineUnavailableException;
 import java.io.*;
 import CMPC3M06.AudioPlayer;
@@ -20,6 +21,7 @@ public class AudioReceiverThread implements Runnable {
         try {
             receiving_socket = new DatagramSocket(PORT);
             receiving_socket.setReceiveBufferSize(1024 * 1024);
+            receiving_socket.setSoTimeout(5000); // 5 second timeout
         } catch (SocketException e) {
             System.out.println("ERROR: Could not open UDP socket to receive from.");
             e.printStackTrace();
@@ -37,10 +39,9 @@ public class AudioReceiverThread implements Runnable {
         }
 
         // Main loop.
-        boolean running = true;
         int blockCount = 0;
 
-        while (running) {
+        while (AudioDuplex.running) {
 
             try {
                 // Receive a DatagramPacket
@@ -49,26 +50,21 @@ public class AudioReceiverThread implements Runnable {
 
                 receiving_socket.receive(packet);
 
-                // Check if it's END
-                String received = new String(buffer, 0, packet.getLength());
-                if (received.equals("END")) {
-                    running = false;
-                    System.out.println("Received END packet. Stopping...");
-                } else {
-                    // Print when starting to play
-                    if (blockCount == 0) {
-                        System.out.println("Playing Audio...");
-                    }
-                    // Play the audio block
-                    try {
-                        player.playBlock(buffer);
-                        blockCount++;
-                    } catch (Exception e) {
-                        System.out.println("ERROR: Failed to play audio block.");
-                        e.printStackTrace();
-                        running = false;
-                    }
+                // Print when starting to play
+                if (blockCount == 0) {
+                    System.out.println("Playing Audio...");
                 }
+                // Play the audio block
+                try {
+                    player.playBlock(buffer);
+                    blockCount++;
+                } catch (Exception e) {
+                    System.out.println("ERROR: Failed to play audio block.");
+                    e.printStackTrace();
+                }
+
+            } catch (SocketTimeoutException e) {
+                System.out.println("No packets received for 5 seconds. Stopping...");
             } catch (IOException e) {
                 System.out.println("ERROR: Some random IO error occured!");
                 e.printStackTrace();

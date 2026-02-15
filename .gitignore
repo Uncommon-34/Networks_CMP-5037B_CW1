@@ -26,3 +26,6 @@ replay_pid*
 .vscode/
 bin/
 lib/
+
+input.wav
+output.wav
