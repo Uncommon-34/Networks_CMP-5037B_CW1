@@ -15,9 +15,6 @@ public class AudioReceiverThread implements Runnable {
 
     static DatagramSocket receiving_socket;
 
-    //----REMEMBER TO CHANGE THIS TO MATCH sends on both this side-------------------------
-    private static final int CHANNEL = 3;
-
     public void start() {
         Thread thread = new Thread(this);
         thread.start();
@@ -25,25 +22,23 @@ public class AudioReceiverThread implements Runnable {
 
     public void run() {
 
-        int PORT = 55555;
-
         try {
             //------------------Switch for Setting Datagram Socket----------------------------
-            switch (CHANNEL) {
+            switch (AudioDuplex.CHANNEL) {
                 case 1:
-                    receiving_socket = new DatagramSocket(PORT);
+                    receiving_socket = new DatagramSocket(AudioDuplex.PORT);
                     break;
                 case 2:
-                    receiving_socket = new DatagramSocket2(PORT);
+                    receiving_socket = new DatagramSocket2(AudioDuplex.PORT);
                     break;
                 case 3:
-                    receiving_socket = new DatagramSocket3(PORT);
+                    receiving_socket = new DatagramSocket3(AudioDuplex.PORT);
                     break;
                 case 4:
-                    receiving_socket = new DatagramSocket4(PORT);
+                    receiving_socket = new DatagramSocket4(AudioDuplex.PORT);
                     break;
                 default:
-                    receiving_socket = new DatagramSocket(PORT);
+                    receiving_socket = new DatagramSocket(AudioDuplex.PORT);
                     break;
             }
 
@@ -72,7 +67,7 @@ public class AudioReceiverThread implements Runnable {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy_HH-mm-ss");
 String timestamp = LocalDateTime.now().format(formatter);
             logWriter = new PrintWriter(new FileWriter("logs/packet-log_" + timestamp +  ".txt"));
-            logWriter.println("Packet Log,Channle: , DatagramSocket" + CHANNEL + ",TimeStamp: " + timestamp);
+            logWriter.println("Packet Log,Channle: , DatagramSocket" + AudioDuplex.CHANNEL + ",TimeStamp: " + timestamp);
             logWriter.println("Seq,Received,Delay(ms),Status");
         } catch (IOException e) {
             System.out.println("ERROR: Could not create log file.");
@@ -82,9 +77,7 @@ String timestamp = LocalDateTime.now().format(formatter);
         // keeps track of what sequence number we're expecting next (anything that doesn't match is out of order)
         int expectedSeq = 0;
 
-        boolean running = true;
-
-        while (running) {
+        while (AudioDuplex.RUNNING) {
             try {
                 DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 

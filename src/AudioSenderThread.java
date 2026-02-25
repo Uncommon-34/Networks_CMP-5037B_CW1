@@ -23,7 +23,6 @@ public class AudioSenderThread implements Runnable {
 
     public void run() {
 
-        int PORT = 55555;
         InetAddress clientIP = null;
         AudioRecorder recorder = null;
 
@@ -31,15 +30,27 @@ public class AudioSenderThread implements Runnable {
 
         try {
             //update tomatch client ip
-            clientIP = InetAddress.getByName("localhost");
-
+            clientIP = InetAddress.getByName(AudioDuplex.IP);
 
             //----SWITCH CHANNELS HERE-------------------------
 
-            //sending_socket = new DatagramSocket2();
-            sending_socket = new DatagramSocket3();
-            //sending_socket = new DatagramSocket4();
-
+            switch (AudioDuplex.CHANNEL) {
+                case 1:
+                    sending_socket = new DatagramSocket(AudioDuplex.PORT);
+                    break;
+                case 2:
+                    sending_socket = new DatagramSocket2(AudioDuplex.PORT);
+                    break;
+                case 3:
+                    sending_socket = new DatagramSocket3(AudioDuplex.PORT);
+                    break;
+                case 4:
+                    sending_socket = new DatagramSocket4(AudioDuplex.PORT);
+                    break;
+                default:
+                    sending_socket = new DatagramSocket(AudioDuplex.PORT);
+                    break;
+            }
         } catch (Exception e) {
             System.out.println("ERROR: AudioSender: Could not initialize socket.");
             e.printStackTrace();
@@ -54,9 +65,7 @@ public class AudioSenderThread implements Runnable {
             System.exit(0);
         }
 
-        boolean running = true;
-
-        while (running) {
+        while (AudioDuplex.RUNNING) {
             try {
                 byte[] audioBlock = recorder.getBlock();
 
@@ -71,7 +80,7 @@ public class AudioSenderThread implements Runnable {
 
                 byte[] packetData = buffer.array();
 
-                DatagramPacket packet = new DatagramPacket(packetData, packetData.length, clientIP, PORT);
+                DatagramPacket packet = new DatagramPacket(packetData, packetData.length, clientIP, AudioDuplex.PORT);
 
                 sending_socket.send(packet);
                 sequenceNumber++;
