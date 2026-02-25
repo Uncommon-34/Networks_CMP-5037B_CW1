@@ -5,6 +5,8 @@
 import java.net.*;
 import java.io.*;
 import java.nio.ByteBuffer;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 import CMPC3M06.AudioPlayer;
 import uk.ac.uea.cmp.voip.*;
@@ -54,8 +56,11 @@ public class AudioReceiverThread implements Runnable {
 
         PrintWriter logWriter = null;
         try {
-            logWriter = new PrintWriter(new FileWriter("network_log_" + CHANNEL_NAME + ".txt"));
-            logWriter.println("Seq |Received |Delay(ms) |Status");
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy_HH-mm-ss");
+String timestamp = LocalDateTime.now().format(formatter);
+            logWriter = new PrintWriter(new FileWriter("logs/packet-log_" + timestamp +  ".txt"));
+            logWriter.println("Packet Log,Channle: ," + CHANNEL_NAME + ",TimeStamp: " + timestamp);
+            logWriter.println("Seq,Received,Delay(ms),Status");
         } catch (IOException e) {
             System.out.println("ERROR: Could not create log file.");
             e.printStackTrace();
@@ -99,7 +104,7 @@ public class AudioReceiverThread implements Runnable {
 
                 }
 
-                logWriter.println(sequenceNumber + " , 1 , "  + delay+" , "+status);
+                logWriter.println(sequenceNumber + ",1 ,"  + delay+","+status);
                 logWriter.flush();
 
                 player.playBlock(audioBlock);
