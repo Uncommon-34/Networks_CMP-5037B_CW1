@@ -15,8 +15,8 @@ public class AudioReceiverThread implements Runnable {
 
     static DatagramSocket receiving_socket;
 
-    //----REMEMBER TO CHANGE THIS TO MATCH RECEIVER-------------------------
-    private static final String CHANNEL_NAME = "DatagramSocket3";
+    //----REMEMBER TO CHANGE THIS TO MATCH sends on both this side-------------------------
+    private static final int CHANNEL = 3;
 
     public void start() {
         Thread thread = new Thread(this);
@@ -28,11 +28,24 @@ public class AudioReceiverThread implements Runnable {
         int PORT = 55555;
 
         try {
-            //------------------CHOOSE CHANNELS HERE----------------------------
-            //receiving_socket = new DatagramSocket2(PORT);
-            receiving_socket = new DatagramSocket3(PORT);
-            //receiving_socket = new DatagramSocket4(PORT);
-
+            //------------------Switch for Setting Datagram Socket----------------------------
+            switch (CHANNEL) {
+                case 1:
+                    receiving_socket = new DatagramSocket(PORT);
+                    break;
+                case 2:
+                    receiving_socket = new DatagramSocket2(PORT);
+                    break;
+                case 3:
+                    receiving_socket = new DatagramSocket3(PORT);
+                    break;
+                case 4:
+                    receiving_socket = new DatagramSocket4(PORT);
+                    break;
+                default:
+                    receiving_socket = new DatagramSocket(PORT);
+                    break;
+            }
 
             receiving_socket.setSoTimeout(20); // anything that doesn't arrive in this window is assumed lost
 
@@ -59,7 +72,7 @@ public class AudioReceiverThread implements Runnable {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy_HH-mm-ss");
 String timestamp = LocalDateTime.now().format(formatter);
             logWriter = new PrintWriter(new FileWriter("logs/packet-log_" + timestamp +  ".txt"));
-            logWriter.println("Packet Log,Channle: ," + CHANNEL_NAME + ",TimeStamp: " + timestamp);
+            logWriter.println("Packet Log,Channle: , DatagramSocket" + CHANNEL + ",TimeStamp: " + timestamp);
             logWriter.println("Seq,Received,Delay(ms),Status");
         } catch (IOException e) {
             System.out.println("ERROR: Could not create log file.");
@@ -67,7 +80,7 @@ String timestamp = LocalDateTime.now().format(formatter);
         }
 
         // keeps track of what sequence number we're expecting next (anything that doesn't match is out of order)
-        int expectedSeq =0;
+        int expectedSeq = 0;
 
         boolean running = true;
 
@@ -104,7 +117,7 @@ String timestamp = LocalDateTime.now().format(formatter);
 
                 }
 
-                logWriter.println(sequenceNumber + ",1 ,"  + delay+","+status);
+                logWriter.println(sequenceNumber + ",1," + delay + "," + status);
                 logWriter.flush();
 
                 player.playBlock(audioBlock);
@@ -112,7 +125,7 @@ String timestamp = LocalDateTime.now().format(formatter);
             } catch (SocketTimeoutException e) {
 
                 // nothing arrived in 20ms
-                logWriter.println(expectedSeq+" , 0 , 0 , TIMEOUT ");
+                logWriter.println(expectedSeq+",0,0,TIMEOUT");
                 logWriter.flush();
                 expectedSeq++;
 
