@@ -67,7 +67,7 @@ public class AudioReceiverThread implements Runnable {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy_HH-mm-ss");
 String timestamp = LocalDateTime.now().format(formatter);
             logWriter = new PrintWriter(new FileWriter("logs/packet-log_" + timestamp +  ".txt"));
-            logWriter.println("Packet Log,Channle: , DatagramSocket" + AudioDuplex.CHANNEL + ",TimeStamp: " + timestamp);
+            logWriter.println("Packet Log,Channle:,DatagramSocket" + AudioDuplex.CHANNEL + ",TimeStamp:," + timestamp);
             logWriter.println("Seq,Received,Delay(ms),Status");
         } catch (IOException e) {
             System.out.println("ERROR: Could not create log file.");

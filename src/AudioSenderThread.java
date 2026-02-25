@@ -13,9 +13,6 @@ public class AudioSenderThread implements Runnable {
 
     static DatagramSocket sending_socket;
 
-    //----REMEMBER TO CHANGE THIS TO MATCH RECEIVER-------------------------
-    private static final String CHANNEL_NAME = "DatagramSocket3";
-
     public void start() {
         Thread thread = new Thread(this);
         thread.start();
@@ -36,19 +33,19 @@ public class AudioSenderThread implements Runnable {
 
             switch (AudioDuplex.CHANNEL) {
                 case 1:
-                    sending_socket = new DatagramSocket(AudioDuplex.PORT);
+                    sending_socket = new DatagramSocket();
                     break;
                 case 2:
-                    sending_socket = new DatagramSocket2(AudioDuplex.PORT);
+                    sending_socket = new DatagramSocket2();
                     break;
                 case 3:
-                    sending_socket = new DatagramSocket3(AudioDuplex.PORT);
+                    sending_socket = new DatagramSocket3();
                     break;
                 case 4:
-                    sending_socket = new DatagramSocket4(AudioDuplex.PORT);
+                    sending_socket = new DatagramSocket4();
                     break;
                 default:
-                    sending_socket = new DatagramSocket(AudioDuplex.PORT);
+                    sending_socket = new DatagramSocket();
                     break;
             }
         } catch (Exception e) {
