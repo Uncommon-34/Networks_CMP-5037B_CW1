@@ -30,7 +30,8 @@ public class AudioSenderThread implements Runnable {
         int sequenceNumber = 0;
 
         try {
-            clientIP = InetAddress.getByName("139.222.219.51");
+            //update tomatch client ip
+            clientIP = InetAddress.getByName("localhost");
 
 
             //----SWITCH CHANNELS HERE-------------------------
