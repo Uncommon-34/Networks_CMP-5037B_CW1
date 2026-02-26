@@ -31,3 +31,19 @@ model is governed by the state 2 self-loop probability, q, and
 is equal to its mean state duration which is given as
 
 ![img_1.png](img/img_1.png)
+
+### Gantt chart 
+Basic chart for now, to be finalised. 
+
+```mermaid 
+
+gantt 
+
+title VoIP Coursework 
+dateFormat DD-MM
+
+section Tasks 
+    Channel Analysis: 25-02,4d
+    Design & Implementation: 01-03,7d
+    Finish Report: 12-03,3d
+
