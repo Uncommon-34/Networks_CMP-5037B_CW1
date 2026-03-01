@@ -23,7 +23,8 @@ public class AudioReceiverThread implements Runnable {
     public void run() {
 
         try {
-            //------------------Switch for Setting Datagram Socket----------------------------
+            // ------------------Switch for Setting Datagram
+            // Socket----------------------------
             switch (AudioDuplex.CHANNEL) {
                 case 1:
                     receiving_socket = new DatagramSocket(AudioDuplex.PORT);
@@ -65,8 +66,8 @@ public class AudioReceiverThread implements Runnable {
         PrintWriter logWriter = null;
         try {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy_HH-mm-ss");
-String timestamp = LocalDateTime.now().format(formatter);
-            logWriter = new PrintWriter(new FileWriter("logs/packet-log_" + timestamp +  ".txt"));
+            String timestamp = LocalDateTime.now().format(formatter);
+            logWriter = new PrintWriter(new FileWriter("logs/packet-log_" + timestamp + ".txt"));
             logWriter.println("Packet Log,Channle:,DatagramSocket" + AudioDuplex.CHANNEL + ",TimeStamp:," + timestamp);
             logWriter.println("Seq,Received,Delay(ms),Status");
         } catch (IOException e) {
@@ -74,7 +75,8 @@ String timestamp = LocalDateTime.now().format(formatter);
             e.printStackTrace();
         }
 
-        // keeps track of what sequence number we're expecting next (anything that doesn't match is out of order)
+        // keeps track of what sequence number we're expecting next (anything that
+        // doesn't match is out of order)
         int expectedSeq = 0;
 
         while (AudioDuplex.RUNNING) {
@@ -82,7 +84,6 @@ String timestamp = LocalDateTime.now().format(formatter);
                 DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 
                 receiving_socket.receive(packet);
-
 
                 long receiveTime = System.currentTimeMillis();
 
@@ -95,12 +96,11 @@ String timestamp = LocalDateTime.now().format(formatter);
                 byte[] audioBlock = new byte[512];
                 wrapped.get(audioBlock);
 
-
                 String status;
-                if (sequenceNumber == expectedSeq){
-                    status ="OK";
+                if (sequenceNumber == expectedSeq) {
+                    status = "OK";
                     expectedSeq++;
-                }else if (sequenceNumber > expectedSeq) {
+                } else if (sequenceNumber > expectedSeq) {
                     // gap in sequence — packets before this one were delayed or lost
                     status = "OUT_OF_ORDER";
                     expectedSeq = sequenceNumber + 1;
@@ -118,7 +118,7 @@ String timestamp = LocalDateTime.now().format(formatter);
             } catch (SocketTimeoutException e) {
 
                 // nothing arrived in 20ms
-                logWriter.println(expectedSeq+",0,0,TIMEOUT");
+                logWriter.println(expectedSeq + ",0,0,TIMEOUT");
                 logWriter.flush();
                 expectedSeq++;
 
