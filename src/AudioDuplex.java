@@ -20,16 +20,25 @@ public class AudioDuplex {
 
     public static volatile int WEAVER = 2; // can be 2, 3, or 4 to select which interweaver to use
 
-    public static volatile String KEY = ""; // enchryption key, must match on sender and receiver for audio to be
-                                            // correctly encrypted and decrypted
+    public static volatile String KEY = null; // enchryption key, must match on sender and receiver for audio to be
+                                              // correctly encrypted and decrypted
 
     public static void main(String[] args) {
 
         AudioReceiverThread receiver = new AudioReceiverThread();
         AudioSenderThread sender = new AudioSenderThread();
+        InputHandshakeSenderThread handshakeSender = new InputHandshakeSenderThread();
 
+        // receiver should always be running to listen for incoming audio or a handshake
+        // packet
         receiver.start();
-        sender.start();
 
+        if (KEY == null || KEY.equals("") || IP == null || IP.equals("")) {
+            System.out.println("Starting handshake sender...");
+            handshakeSender.start();
+        } else {
+            System.out.println("Starting audio sender...");
+            sender.start();
+        }
     }
 }

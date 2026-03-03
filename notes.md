@@ -32,18 +32,18 @@ is equal to its mean state duration which is given as
 
 ![img_1.png](img/img_1.png)
 
-### Gantt chart 
-Basic chart for now, to be finalised. 
+# Gantt chart
 
-```mermaid 
+```mermaid
 
-gantt 
+gantt
 
-title VoIP Coursework 
+title VoIP Coursework
 dateFormat DD-MM
 
-section Tasks 
+section Tasks
     Channel Analysis: 25-02,4d
     Design & Implementation: 01-03,7d
     Finish Report: 12-03,3d
 
+```
