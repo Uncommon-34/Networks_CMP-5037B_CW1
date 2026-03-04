@@ -18,6 +18,9 @@ public class AudioSenderThread implements Runnable {
         thread.start();
     }
 
+
+    //XOR encryption 
+    //if key = "" disable encryption 
     public void run() {
 
         InetAddress clientIP = null;
