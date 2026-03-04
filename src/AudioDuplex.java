@@ -7,6 +7,7 @@
  * @author abj
  */
 
+//Encryption branch 
 public class AudioDuplex {
 
     public static volatile int CHANNEL = 2; // can be 1, 2, 3, or 4 to select which datagram socket to use
