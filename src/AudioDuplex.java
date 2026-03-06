@@ -21,8 +21,8 @@ public class AudioDuplex {
 
     public static volatile int WEAVER = 2; // can be 2, 3, or 4 to select which interweaver to use
 
-    public static volatile String KEY = ""; // enchryption key, must match on sender and receiver for audio to be
-                                            // correctly encrypted and decrypted
+    public static volatile String KEY = "12345"; // enchryption key, must match on sender and receiver for audio to be
+                                            // leave as "" to skip encryption 
 
     public static void main(String[] args) {
 
