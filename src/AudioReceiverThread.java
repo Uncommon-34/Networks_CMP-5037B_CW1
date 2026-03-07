@@ -25,17 +25,22 @@ public class AudioReceiverThread implements Runnable {
         if (AudioDuplex.KEY == null || AudioDuplex.KEY.isEmpty()){
             return block;
         }
-        System.out.println("DEBUG: Decrypting with key: " + AudioDuplex.KEY);
+        //System.out.println("DEBUG: Decrypting with key: " + AudioDuplex.KEY);
 
         int key = Integer.parseInt(AudioDuplex.KEY);
 
         ByteBuffer cipherText = ByteBuffer.wrap(block);
         ByteBuffer decrypted = ByteBuffer.allocate(block.length);
 
-        for (int j = 0; j < block.length / 4; j++){
+        int numChunks = block.length /4;
+        for(int j = 0; j < numChunks; j++){
             int fourByte = cipherText.getInt();
-            fourByte = fourByte ^ key;
+            int shiftAmount = j % 32; 
+            int shiftedKey = (key << shiftAmount) | (key >>> (32 - shiftAmount));
+            fourByte = fourByte ^ shiftedKey;
+            decrypted.putInt(fourByte);
         }
+
 
         return decrypted.array();
 
