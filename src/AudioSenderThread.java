@@ -19,7 +19,6 @@ public class AudioSenderThread implements Runnable {
     }
 
 
-    //XOR encrypts byte array using key from Audio.duplex 
     private byte[] encryptBlock(byte[] block){
         if (AudioDuplex.KEY == null || AudioDuplex.KEY.isEmpty()){
             return block; //if no key configured skips encryption 
@@ -30,9 +29,13 @@ public class AudioSenderThread implements Runnable {
         ByteBuffer plainText = ByteBuffer.wrap(block);
         ByteBuffer encrypted = ByteBuffer.allocate(block.length);
 
-        for (int j =0; j < block.length / 4; j++){
+        int numChunks = block.length / 4;
+        for (int j =0; j < numChunks; j++) {
             int fourByte = plainText.getInt();
-            fourByte = fourByte ^ key;
+            int shiftAmount = j % 32;
+            //bits shifted out of the left re-enter on the right 
+            int shiftedKey = (key << shiftAmount) | (key >>> (32 - shiftAmount));
+            fourByte = fourByte ^ shiftedKey;
             encrypted.putInt(fourByte);
         }
         return encrypted.array();
