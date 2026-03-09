@@ -25,9 +25,8 @@ public class AudioReceiverThread implements Runnable {
         if (AudioDuplex.KEY == null || AudioDuplex.KEY.isEmpty()){
             return block;
         }
-        System.out.println("DEBUG: Decrypting with key: " + AudioDuplex.KEY);
 
-        int key = Integer.parseInt(AudioDuplex.KEY);
+        int key = Integer.parseInt(AudioDuplex.KEY); //same as senders side 
 
         ByteBuffer cipherText = ByteBuffer.wrap(block);
         ByteBuffer decrypted = ByteBuffer.allocate(block.length);
