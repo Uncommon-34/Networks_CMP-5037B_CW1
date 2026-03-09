@@ -1,6 +1,8 @@
 /*
- * AudioSenderThread.java
- */
+File: AudioReceiverThread.java
+Author: CaileyGR
+Notes: Packet interleaver implementation
+*/
 
 import java.net.*;
 import java.io.*;
@@ -24,12 +26,13 @@ public class AudioSenderThread implements Runnable {
         AudioRecorder recorder = null;
 
         int sequenceNumber = 0;
+        int depth = AudioDuplex.DEPTH;
 
         try {
             //update tomatch client ip
             clientIP = InetAddress.getByName(AudioDuplex.IP);
 
-            //----SWITCH CHANNELS HERE-------------------------
+            //---------------- Switch Channels Here ----------------
 
             switch (AudioDuplex.CHANNEL) {
                 case 1:
@@ -49,7 +52,8 @@ public class AudioSenderThread implements Runnable {
                     break;
             }
         } catch (Exception e) {
-            System.out.println("ERROR: AudioSender: Could not initialize socket.");
+            System.out.println("ERROR: AudioSender: " +
+                    "Could not initialize socket.");
             e.printStackTrace();
             System.exit(0);
         }
@@ -57,37 +61,55 @@ public class AudioSenderThread implements Runnable {
         try {
             recorder = new AudioRecorder();
         } catch (Exception e) {
-            System.out.println("ERROR: AudioSender: Could not initialize microphone.");
+            System.out.println("ERROR: AudioSender: " +
+                    "Could not initialize microphone.");
             e.printStackTrace();
             System.exit(0);
         }
 
         while (AudioDuplex.RUNNING) {
             try {
-                byte[] audioBlock = recorder.getBlock();
+                // buffer for the audio blocks
+                byte[][] bufferedBlocks = new byte[depth][512];
+                for (int i = 0; i < depth; i++) {
+                    bufferedBlocks[i] = recorder.getBlock();
+                }
 
-                // Packet
-                ByteBuffer buffer = ByteBuffer.allocate(4 + 8 + audioBlock.length);
+                byte[][] interleavePackets = new byte[depth][512];
 
-                buffer.putInt(sequenceNumber);
+                // the method of interleaving the packets which loops through
+                // the audio
+                for (int i = 0; i < 256 * depth; i++) {
+                    int packetIndex = i % depth;
+                    int sampleIndex = i / depth;
+                    int blockOriginal = i / 256;
+                    int sampleOriginal = i % 256;
 
+                    interleavePackets[packetIndex][sampleIndex*2] =
+                            bufferedBlocks[blockOriginal][sampleOriginal*2];
+                    interleavePackets[packetIndex][sampleIndex*2+1] =
+                            bufferedBlocks[blockOriginal][sampleOriginal*2+1];
+                }
 
-                buffer.putLong(System.currentTimeMillis());
-                buffer.put(audioBlock);
+                // burst sends the packets
+                for (int i = 0; i < depth; i++) {
+                    ByteBuffer buffer = ByteBuffer.allocate(4+8+512);
+                    buffer.putInt(sequenceNumber);
+                    buffer.putLong(System.currentTimeMillis());
+                    buffer.put(interleavePackets[i]);
 
-                byte[] packetData = buffer.array();
+                    byte[] packetData = buffer.array();
+                    DatagramPacket packet = new DatagramPacket(packetData,
+                            packetData.length, clientIP, AudioDuplex.PORT);
 
-                DatagramPacket packet = new DatagramPacket(packetData, packetData.length, clientIP, AudioDuplex.PORT);
-
-                sending_socket.send(packet);
-                sequenceNumber++;
-
+                    sending_socket.send(packet);
+                    sequenceNumber++;
+                }
             } catch (IOException e) {
                 System.out.println("ERROR: AudioSender: Network/audio error.");
                 e.printStackTrace();
             }
         }
-
         sending_socket.close();
     }
 }

@@ -1,6 +1,8 @@
 /*
- * AudioReceiverThread.java
- */
+File: AudioReceiverThread.java
+Author: CaileyGR
+Notes: Packet interleaver implementation
+*/
 
 import java.net.*;
 import java.io.*;
@@ -23,8 +25,7 @@ public class AudioReceiverThread implements Runnable {
     public void run() {
 
         try {
-            // ------------------Switch for Setting Datagram
-            // Socket----------------------------
+            // -------- Switch for Setting Datagram Socket --------
             switch (AudioDuplex.CHANNEL) {
                 case 1:
                     receiving_socket = new DatagramSocket(AudioDuplex.PORT);
@@ -43,7 +44,11 @@ public class AudioReceiverThread implements Runnable {
                     break;
             }
 
-            receiving_socket.setSoTimeout(20); // anything that doesn't arrive in this window is assumed lost
+
+            receiving_socket.setSoTimeout((AudioDuplex.DEPTH * 32) + 100); //
+            // as 1
+            // block of audio takes roughly 32ms to play it dynamically
+            // calculates the timeout
 
         } catch (SocketException e) {
             System.out.println("ERROR: AudioReceiver: Could not open socket.");
@@ -65,26 +70,43 @@ public class AudioReceiverThread implements Runnable {
 
         PrintWriter logWriter = null;
         try {
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy_HH-mm-ss");
+            DateTimeFormatter formatter = DateTimeFormatter.
+                    ofPattern("dd-MM-yyyy_HH-mm-ss");
             String timestamp = LocalDateTime.now().format(formatter);
-            logWriter = new PrintWriter(new FileWriter("logs/packet-log_" + timestamp + ".txt"));
-            logWriter.println("Packet Log,Channle:,DatagramSocket" + AudioDuplex.CHANNEL + ",TimeStamp:," + timestamp);
-            logWriter.println("Seq,Received,Delay(ms),Status");
+            logWriter = new PrintWriter(new FileWriter
+                    ("logs/packet-log_" + timestamp + ".txt"));
+            logWriter.println("         --- PACKET LOG ---");
+            logWriter.println("CHANNEL: DatagramSocket" + AudioDuplex.CHANNEL);
+            logWriter.println("INTERLEAVER DEPTH: " + AudioDuplex.DEPTH);
+            logWriter.println("TIMESTAMP: " + timestamp);
+            logWriter.println(
+                    "-----------------------------------------");
+            logWriter.println(String.format("%-6s %-9s %-10s %-12s", "SEQ NO",
+                    "RECEIVED", "DELAY(ms)", "STATUS"));
         } catch (IOException e) {
             System.out.println("ERROR: Could not create log file.");
             e.printStackTrace();
         }
 
-        // keeps track of what sequence number we're expecting next (anything that
-        // doesn't match is out of order)
+        // keeps track of what sequence number we're expecting next
+        // (anything that doesn't match is out of order)
         int expectedSeq = 0;
+        int depth = AudioDuplex.DEPTH;
+
+        // keeps track of the interleaving groups
+        int expectedGroup = 0;
+        int packetsArrivedInGroup = 0;
+        int timeoutCount = 0;
+
+        byte[][] currentGroupPackets = new byte[depth][512];
+        boolean[] arrived = new boolean[depth];
 
         while (AudioDuplex.RUNNING) {
+            System.out.print("Timeouts: " + timeoutCount + "\r");
             try {
-                DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-
+                DatagramPacket packet = new DatagramPacket(buffer,
+                        buffer.length);
                 receiving_socket.receive(packet);
-
                 long receiveTime = System.currentTimeMillis();
 
                 // unpack the header fields in order
@@ -101,7 +123,8 @@ public class AudioReceiverThread implements Runnable {
                     status = "OK";
                     expectedSeq++;
                 } else if (sequenceNumber > expectedSeq) {
-                    // gap in sequence — packets before this one were delayed or lost
+                    // gap in sequence —
+                    // packets before this one were delayed or lost
                     status = "OUT_OF_ORDER";
                     expectedSeq = sequenceNumber + 1;
                 } else {
@@ -109,23 +132,75 @@ public class AudioReceiverThread implements Runnable {
                     status = "OUT_OF_ORDER";
 
                 }
+                // logic to calculate which group a packet belongs to
+                int group = sequenceNumber / depth;
+                int index = sequenceNumber % depth;
 
-                logWriter.println(sequenceNumber + ",1," + delay + "," + status);
+                if (group > expectedGroup) {
+                    // force plays so audio doesn't cut out
+                    playGroup(currentGroupPackets, arrived, depth, player);
+
+                    // resets for new future group
+                    expectedGroup = group;
+                    currentGroupPackets = new byte[depth][512];
+                    arrived = new boolean[depth];
+                    packetsArrivedInGroup = 0;
+
+                    // store new packet
+                    currentGroupPackets[index] = audioBlock;
+                    arrived[index] = true;
+                    packetsArrivedInGroup++;
+                } else if (group == expectedGroup) {
+                    // when the packet belongs to the group
+                    if (!arrived[index]) {
+                        currentGroupPackets[index] = audioBlock;
+                        arrived[index] = true;
+                        packetsArrivedInGroup++;
+
+                        if (packetsArrivedInGroup == depth) {
+                            playGroup(currentGroupPackets, arrived, depth, player);
+                            expectedGroup++;
+                            currentGroupPackets = new byte[depth][512];
+                            arrived = new boolean[depth];
+                            packetsArrivedInGroup = 0;
+                        }
+                    }
+                } else {
+                    // discarding packets that have arrived late else is
+                    // ruins the audio
+                    status = "TOO_LATE_DISCARDED";
+                }
+
+                logWriter.println(String.format("%-6d %-9d %-10d %-12s",
+                        sequenceNumber, 1, delay, status));
                 logWriter.flush();
-
-                player.playBlock(audioBlock);
 
             } catch (SocketTimeoutException e) {
 
                 // nothing arrived in 20ms
-                logWriter.println(expectedSeq + ",0,0,TIMEOUT");
+                timeoutCount++;
+                logWriter.println(String.format("%-6d %-9d %-10d %-12s",
+                        expectedSeq, 0, 0, "TIMEOUT"));
                 logWriter.flush();
                 expectedSeq++;
 
-                try {
-                    player.playBlock(new byte[512]);
-                } catch (IOException ioException) {
-                    ioException.printStackTrace();
+                if (packetsArrivedInGroup > 0) {
+                    playGroup(currentGroupPackets, arrived, depth, player);
+                    expectedGroup++;
+                    currentGroupPackets = new byte[depth][512];
+                    arrived = new boolean[depth];
+                    packetsArrivedInGroup = 0;
+                } else {
+                    // when it loses the whole group it will play silence to
+                    // maintain the timing
+                    try {
+                        for (int i = 0; i < depth; i++) {
+                            player.playBlock(new byte[512]);
+                        }
+                    } catch (IOException e1) {
+                        e1.printStackTrace();
+                    }
+                    expectedGroup++;
                 }
 
             } catch (IOException e) {
@@ -133,8 +208,57 @@ public class AudioReceiverThread implements Runnable {
                 e.printStackTrace();
             }
         }
-
         logWriter.close();
         receiving_socket.close();
+    }
+
+    private void playGroup(byte[][] packets, boolean[] arrived, int depth,
+                           AudioPlayer player) {
+        boolean anyArrived = false;
+        for (boolean b : arrived) {
+            if (b) {
+                anyArrived = true;
+                break;
+            }
+        }
+
+        if (!anyArrived) {
+            try {
+                for (int i = 0; i < depth; i++) {
+                    player.playBlock(new byte[512]);
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            } return;
+        }
+
+        byte[][] reconstructed = new byte[depth][512];
+        byte lastByte1 = 0;
+        byte lastByte2 = 0;
+
+        for (int i = 0; i < 256*depth; i++) {
+            int packetIndex = i % depth;
+            int sampleIndex = i / depth;
+            int blockOriginal = i / 256;
+            int sampleOriginal = i % 256;
+
+            if (arrived[packetIndex]) {
+                lastByte1 = packets[packetIndex][sampleIndex*2];
+                lastByte2 = packets[packetIndex][sampleIndex*2+1];
+                reconstructed[blockOriginal][sampleOriginal*2] = lastByte1;
+                reconstructed[blockOriginal][sampleOriginal*2+1] = lastByte2;
+            } else {
+                reconstructed[blockOriginal][sampleOriginal*2] = lastByte1;
+                reconstructed[blockOriginal][sampleOriginal*2+1] = lastByte2;
+            }
+        }
+
+        try {
+            for (int i = 0; i < depth; i++) {
+                player.playBlock(reconstructed[i]);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
