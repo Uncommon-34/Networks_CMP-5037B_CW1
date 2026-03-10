@@ -1,7 +1,7 @@
 /*
-File: AudioReceiverThread.java
-Author: CaileyGR
-Notes: Packet interleaver implementation
+File: AudioSenderThread.java
+Author: CaileyGR, HarryT,
+Notes: Packet interleaver implementation and encryption implementation
 */
 
 import java.net.*;
@@ -20,6 +20,7 @@ public class AudioSenderThread implements Runnable {
         thread.start();
     }
 
+    // Encrypt audio block using XOR with shifted key
     private byte[] encryptBlock(byte[] block) {
         if (AudioDuplex.KEY == null || AudioDuplex.KEY.isEmpty()) {
             return block; // if no key configured skips encryption
@@ -52,10 +53,9 @@ public class AudioSenderThread implements Runnable {
 
         try {
             // update tomatch client ip
-            clientIP = InetAddress.getByName(AudioDuplex.IP);
+            clientIP = InetAddress.getByName(AudioDuplex.SENDER_IP);
 
-            // ---------------- Switch Channels Here ----------------
-
+            // Select socket type based on channel
             switch (AudioDuplex.CHANNEL) {
                 case 1:
                     sending_socket = new DatagramSocket();
@@ -91,7 +91,7 @@ public class AudioSenderThread implements Runnable {
 
         while (AudioDuplex.RUNNING) {
             try {
-                // buffer for the audio blocks
+                // Record and encrypt audio blocks
                 byte[][] bufferedBlocks = new byte[depth][512];
                 for (int i = 0; i < depth; i++) {
                     bufferedBlocks[i] = encryptBlock(recorder.getBlock());
@@ -99,8 +99,7 @@ public class AudioSenderThread implements Runnable {
 
                 byte[][] interleavePackets = new byte[depth][512];
 
-                // the method of interleaving the packets which loops through
-                // the audio
+                // Interleave the audio samples across packets
                 for (int i = 0; i < 256 * depth; i++) {
                     int packetIndex = i % depth;
                     int sampleIndex = i / depth;
@@ -112,7 +111,7 @@ public class AudioSenderThread implements Runnable {
                             + 1] = bufferedBlocks[blockOriginal][sampleOriginal * 2 + 1];
                 }
 
-                // burst sends the packets
+                // Send interleaved packets
                 for (int i = 0; i < depth; i++) {
                     ByteBuffer buffer = ByteBuffer.allocate(4 + 8 + 512);
                     buffer.putInt(sequenceNumber);
@@ -121,7 +120,7 @@ public class AudioSenderThread implements Runnable {
 
                     byte[] packetData = buffer.array();
                     DatagramPacket packet = new DatagramPacket(packetData,
-                            packetData.length, clientIP, AudioDuplex.PORT);
+                            packetData.length, clientIP, AudioDuplex.SENDER_PORT);
 
                     sending_socket.send(packet);
                     sequenceNumber++;

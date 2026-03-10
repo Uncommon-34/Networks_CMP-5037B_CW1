@@ -1,7 +1,7 @@
 /*
 File: AudioReceiverThread.java
-Author: CaileyGR
-Notes: Packet interleaver implementation
+Author: CaileyGR, HarryT,
+Notes: Packet interleaver implementation and encryption implementation
 */
 
 import java.net.*;
@@ -22,7 +22,7 @@ public class AudioReceiverThread implements Runnable {
         thread.start();
     }
 
-    // Xor is symmetric so decryption is the same
+    // Decrypt audio block using XOR with shifted key
     private byte[] decryptBlock(byte[] block) {
         if (AudioDuplex.KEY == null || AudioDuplex.KEY.isEmpty()) {
             return block;
@@ -46,25 +46,78 @@ public class AudioReceiverThread implements Runnable {
 
     }
 
+    // Reconstruct and play interleaved audio blocks
+    private void playGroup(byte[][] packets, boolean[] arrived, int depth,
+            AudioPlayer player) {
+        boolean anyArrived = false;
+        for (boolean b : arrived) {
+            if (b) {
+                anyArrived = true;
+                break;
+            }
+        }
+
+        if (!anyArrived) {
+            try {
+                for (int i = 0; i < depth; i++) {
+                    player.playBlock(new byte[512]);
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            return;
+        }
+
+        byte[][] reconstructed = new byte[depth][512];
+        byte lastByte1 = 0;
+        byte lastByte2 = 0;
+
+        for (int i = 0; i < 256 * depth; i++) {
+            int packetIndex = i % depth;
+            int sampleIndex = i / depth;
+            int blockOriginal = i / 256;
+            int sampleOriginal = i % 256;
+
+            if (arrived[packetIndex]) {
+                lastByte1 = packets[packetIndex][sampleIndex * 2];
+                lastByte2 = packets[packetIndex][sampleIndex * 2 + 1];
+                reconstructed[blockOriginal][sampleOriginal * 2] = lastByte1;
+                reconstructed[blockOriginal][sampleOriginal * 2 + 1] = lastByte2;
+            } else {
+                reconstructed[blockOriginal][sampleOriginal * 2] = lastByte1;
+                reconstructed[blockOriginal][sampleOriginal * 2 + 1] = lastByte2;
+            }
+        }
+
+        try {
+            for (int i = 0; i < depth; i++) {
+                player.playBlock(decryptBlock(reconstructed[i]));
+                // player.playBlock(reconstructed[i]);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public void run() {
 
         try {
-            // -------- Switch for Setting Datagram Socket --------
+            // Select socket type based on channel
             switch (AudioDuplex.CHANNEL) {
                 case 1:
-                    receiving_socket = new DatagramSocket(AudioDuplex.PORT);
+                    receiving_socket = new DatagramSocket(AudioDuplex.RECEIVER_PORT);
                     break;
                 case 2:
-                    receiving_socket = new DatagramSocket2(AudioDuplex.PORT);
+                    receiving_socket = new DatagramSocket2(AudioDuplex.RECEIVER_PORT);
                     break;
                 case 3:
-                    receiving_socket = new DatagramSocket3(AudioDuplex.PORT);
+                    receiving_socket = new DatagramSocket3(AudioDuplex.RECEIVER_PORT);
                     break;
                 case 4:
-                    receiving_socket = new DatagramSocket4(AudioDuplex.PORT);
+                    receiving_socket = new DatagramSocket4(AudioDuplex.RECEIVER_PORT);
                     break;
                 default:
-                    receiving_socket = new DatagramSocket(AudioDuplex.PORT);
+                    receiving_socket = new DatagramSocket(AudioDuplex.RECEIVER_PORT);
                     break;
             }
 
@@ -117,26 +170,31 @@ public class AudioReceiverThread implements Runnable {
         // keeps track of the interleaving groups
         int expectedGroup = 0;
         int packetsArrivedInGroup = 0;
-        int timeoutCount = 0;
 
         byte[][] currentGroupPackets = new byte[depth][512];
         boolean[] arrived = new boolean[depth];
 
         while (AudioDuplex.RUNNING) {
-            System.out.print("Timeouts: " + timeoutCount + "\r");
+            // Receive audio packets
             try {
                 DatagramPacket packet = new DatagramPacket(buffer,
                         buffer.length);
                 receiving_socket.receive(packet);
                 long receiveTime = System.currentTimeMillis();
 
-                // unpack the header fields in order
+                // Unpack packet header
                 ByteBuffer wrapped = ByteBuffer.wrap(packet.getData());
                 int sequenceNumber = wrapped.getInt();
                 long sendTime = wrapped.getLong();
                 long delay = receiveTime - sendTime;
 
-                // extract encrypted audio payload
+                // Check for exit packet
+                if (sequenceNumber == -2) {
+                    AudioDuplex.RUNNING = false;
+                    continue;
+                }
+
+                // Extract encrypted audio payload
                 byte[] encryptedAudio = new byte[512];
                 wrapped.get(encryptedAudio);
 
@@ -200,7 +258,6 @@ public class AudioReceiverThread implements Runnable {
             } catch (SocketTimeoutException e) {
 
                 // nothing arrived in 20ms
-                timeoutCount++;
                 logWriter.println(String.format("%-6d %-9d %-10d %-12s",
                         expectedSeq, 0, 0, "TIMEOUT"));
                 logWriter.flush();
@@ -234,54 +291,4 @@ public class AudioReceiverThread implements Runnable {
         receiving_socket.close();
     }
 
-    private void playGroup(byte[][] packets, boolean[] arrived, int depth,
-            AudioPlayer player) {
-        boolean anyArrived = false;
-        for (boolean b : arrived) {
-            if (b) {
-                anyArrived = true;
-                break;
-            }
-        }
-
-        if (!anyArrived) {
-            try {
-                for (int i = 0; i < depth; i++) {
-                    player.playBlock(new byte[512]);
-                }
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            return;
-        }
-
-        byte[][] reconstructed = new byte[depth][512];
-        byte lastByte1 = 0;
-        byte lastByte2 = 0;
-
-        for (int i = 0; i < 256 * depth; i++) {
-            int packetIndex = i % depth;
-            int sampleIndex = i / depth;
-            int blockOriginal = i / 256;
-            int sampleOriginal = i % 256;
-
-            if (arrived[packetIndex]) {
-                lastByte1 = packets[packetIndex][sampleIndex * 2];
-                lastByte2 = packets[packetIndex][sampleIndex * 2 + 1];
-                reconstructed[blockOriginal][sampleOriginal * 2] = lastByte1;
-                reconstructed[blockOriginal][sampleOriginal * 2 + 1] = lastByte2;
-            } else {
-                reconstructed[blockOriginal][sampleOriginal * 2] = lastByte1;
-                reconstructed[blockOriginal][sampleOriginal * 2 + 1] = lastByte2;
-            }
-        }
-
-        try {
-            for (int i = 0; i < depth; i++) {
-                player.playBlock(decryptBlock(reconstructed[i]));
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
 }
