@@ -26,7 +26,7 @@ public class HandShakeSenderThread implements Runnable {
                 String ip = scanner.nextLine();
                 AudioDuplex.SENDER_IP = ip;
             }
-            DatagramSocket socket = new DatagramSocket(AudioDuplex.SENDER_PORT);
+            DatagramSocket socket = new DatagramSocket(AudioDuplex.RECEIVER_PORT);
             // Generate 256-bit private key
             BigInteger x = new BigInteger(256, new Random());
             // Compute public key A = G^x mod P
@@ -42,7 +42,7 @@ public class HandShakeSenderThread implements Runnable {
                     InetAddress.getByName(AudioDuplex.SENDER_IP), AudioDuplex.RECEIVER_PORT);
             socket.send(packet);
             System.out.println("Public key generated and handshake packet sent to " + AudioDuplex.SENDER_IP + ":"
-                    + AudioDuplex.SENDER_PORT);
+                    + AudioDuplex.RECEIVER_PORT);
             // Receive other's public key
             byte[] buf = new byte[524];
             DatagramPacket recvPacket = new DatagramPacket(buf, buf.length);

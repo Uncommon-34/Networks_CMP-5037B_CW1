@@ -120,7 +120,7 @@ public class AudioSenderThread implements Runnable {
 
                     byte[] packetData = buffer.array();
                     DatagramPacket packet = new DatagramPacket(packetData,
-                            packetData.length, clientIP, AudioDuplex.SENDER_PORT);
+                            packetData.length, clientIP, AudioDuplex.RECEIVER_PORT);
 
                     sending_socket.send(packet);
                     sequenceNumber++;

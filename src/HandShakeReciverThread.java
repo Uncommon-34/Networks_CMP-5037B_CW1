@@ -18,7 +18,7 @@ public class HandShakeReciverThread implements Runnable {
 
     public void run() {
         try {
-            DatagramSocket socket = new DatagramSocket(AudioDuplex.RECEIVER_PORT);
+            DatagramSocket socket = new DatagramSocket(4343);
             byte[] buf = new byte[524];
             DatagramPacket packet = new DatagramPacket(buf, buf.length);
             socket.receive(packet);
@@ -26,7 +26,7 @@ public class HandShakeReciverThread implements Runnable {
                     "Handshake packet received from " + packet.getAddress() + ":" + packet.getPort());
             // Set IP and port from received packet for two-way communication
             AudioDuplex.SENDER_IP = packet.getAddress().getHostAddress();
-            AudioDuplex.SENDER_PORT = packet.getPort();
+            AudioDuplex.RECEIVER_PORT = packet.getPort();
             ByteBuffer wrapped = ByteBuffer.wrap(packet.getData());
             int seq = wrapped.getInt();
             if (seq == -1) {
