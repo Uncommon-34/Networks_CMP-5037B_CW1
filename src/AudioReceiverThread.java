@@ -20,6 +20,31 @@ public class AudioReceiverThread implements Runnable {
         thread.start();
     }
 
+    //Xor is symmetric so decryption is the same 
+    private byte[] decryptBlock(byte[] block){
+        if (AudioDuplex.KEY == null || AudioDuplex.KEY.isEmpty()){
+            return block;
+        }
+
+        int key = Integer.parseInt(AudioDuplex.KEY);
+
+        ByteBuffer cipherText = ByteBuffer.wrap(block);
+        ByteBuffer decrypted = ByteBuffer.allocate(block.length);
+
+        int numChunks = block.length /4;
+        for(int j = 0; j < numChunks; j++){
+            int fourByte = cipherText.getInt();
+            int shiftAmount = j % 32; 
+            int shiftedKey = (key << shiftAmount) | (key >>> (32 - shiftAmount));
+            fourByte = fourByte ^ shiftedKey;
+            decrypted.putInt(fourByte);
+        }
+
+
+        return decrypted.array();
+
+    }
+
     public void run() {
 
         try {
@@ -93,8 +118,12 @@ public class AudioReceiverThread implements Runnable {
                 long sendTime = wrapped.getLong();
                 long delay = receiveTime - sendTime;
 
-                byte[] audioBlock = new byte[512];
-                wrapped.get(audioBlock);
+                //extract encrypted audio payload 
+                byte[] encryptedAudio = new byte[512];
+                wrapped.get(encryptedAudio);
+
+                //decrypt audio payload 
+                byte[] audioBlock = decryptBlock(encryptedAudio);
 
                 String status;
                 if (sequenceNumber == expectedSeq) {

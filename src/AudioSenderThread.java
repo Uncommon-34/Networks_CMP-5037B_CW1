@@ -18,6 +18,28 @@ public class AudioSenderThread implements Runnable {
         thread.start();
     }
 
+
+    private byte[] encryptBlock(byte[] block){
+        if (AudioDuplex.KEY == null || AudioDuplex.KEY.isEmpty()){
+            return block; //if no key configured skips encryption 
+        }
+
+        int key = Integer.parseInt(AudioDuplex.KEY);
+
+        ByteBuffer plainText = ByteBuffer.wrap(block);
+        ByteBuffer encrypted = ByteBuffer.allocate(block.length);
+
+        int numChunks = block.length / 4;
+        for (int j =0; j < numChunks; j++) {
+            int fourByte = plainText.getInt();
+            int shiftAmount = j % 32;
+            //bits shifted out of the left re-enter on the right 
+            int shiftedKey = (key << shiftAmount) | (key >>> (32 - shiftAmount));
+            fourByte = fourByte ^ shiftedKey;
+            encrypted.putInt(fourByte);
+        }
+        return encrypted.array();
+    }
     public void run() {
 
         InetAddress clientIP = null;
@@ -66,6 +88,9 @@ public class AudioSenderThread implements Runnable {
             try {
                 byte[] audioBlock = recorder.getBlock();
 
+                byte[] encryptedBlock = encryptBlock(audioBlock);
+
+
                 // Packet
                 ByteBuffer buffer = ByteBuffer.allocate(4 + 8 + audioBlock.length);
 
@@ -73,7 +98,7 @@ public class AudioSenderThread implements Runnable {
 
 
                 buffer.putLong(System.currentTimeMillis());
-                buffer.put(audioBlock);
+                buffer.put(encryptedBlock);
 
                 byte[] packetData = buffer.array();
 
