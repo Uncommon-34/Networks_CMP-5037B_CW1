@@ -1,25 +1,25 @@
 /*
- * AudioDuplex.java
- */
-
-/**
- *
- * @author abj
- */
+File: AudioReceiverThread.java
+Author: CaileyGR
+Notes: Packet interleaver implementation
+*/
 
 //Encryption branch 
 public class AudioDuplex {
 
     public static volatile int CHANNEL = 1; // can be 1, 2, 3, or 4 to select which datagram socket to use
 
-    public static volatile int PORT = 55555; // change to match port on which client is sending, sends from this port as
-                                             // wel as sends from
+    // port used for both sending and receiving packets
+    public static volatile int PORT = 55555;
 
-    public static volatile String IP = "localhost"; // change to match client ip if not running on same machine
+    // destination IP address - use "localhost" if running on the same machine
+    public static volatile String IP = "localhost";
 
-    public static volatile boolean RUNNING = true; // change to false to break both sender and receiver loops
+    // controls sender and receiver loops - set to false to stop both threads
+    public static volatile boolean RUNNING = true;
 
-    public static volatile int WEAVER = 2; // can be 2, 3, or 4 to select which interweaver to use
+    // interleaver depth - values: 2, 3, 4
+    public static volatile int DEPTH = 1;
 
     public static volatile String KEY = "2147483647"; // enchryption key, must match on sender and receiver for audio to be
                                             // leave as "" to skip encryption 
@@ -31,6 +31,5 @@ public class AudioDuplex {
 
         receiver.start();
         sender.start();
-
     }
 }
