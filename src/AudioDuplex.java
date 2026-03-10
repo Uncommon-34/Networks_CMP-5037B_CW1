@@ -16,16 +16,16 @@ public class AudioDuplex {
     // controls sender and receiver loops - set to false to stop both threads
     public static volatile boolean RUNNING = true;
     // interleaver depth - values: 2, 3, 4 - 1 technically disables interleaving
-    public static volatile int DEPTH = 1;
+    public static volatile int DEPTH = 2;
     // set to false to disable encryption and key exchange
-    public static volatile boolean ENCRYPTION = false;
+    public static volatile boolean ENCRYPTION = true;
 
     // port used for both sending and receiving packets
-    public static volatile int SENDER_PORT = 55555;
-    public static volatile int RECEIVER_PORT = 55555;
+    public static volatile int SENDER_PORT = 0;
+    public static volatile int RECEIVER_PORT = 0;
 
     // destination IP address - use "localhost" if running on the same machine
-    public static volatile String SENDER_IP = "localhost";
+    public static volatile String SENDER_IP = "";
 
     // encryption key, must match sender and receiver for audio to be leave as ""
     // to skip encryption
