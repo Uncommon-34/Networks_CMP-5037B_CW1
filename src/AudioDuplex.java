@@ -31,7 +31,7 @@ public class AudioDuplex {
 
     // encryption key, must match sender and receiver for audio to be leave as ""
     // to skip encryption
-    public static volatile String KEY;
+    public static volatile String KEY = "2147483647";
 
     // Diffie-Hellman parameters
     public static final BigInteger P = BigInteger.probablePrime(256, new java.util.Random(42));
