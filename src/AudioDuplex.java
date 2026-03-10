@@ -19,10 +19,12 @@ public class AudioDuplex {
     public static volatile int DEPTH = 2;
     // set to false to disable encryption and key exchange
     public static volatile boolean ENCRYPTION = true;
+    // flag to indicate handshake packet received and IP/port set
+    public static volatile boolean HANDSHAKE_RECEIVED = false;
 
     // port used for both sending and receiving packets
-    public static volatile int SENDER_PORT = 0;
-    public static volatile int RECEIVER_PORT = 0;
+    public static volatile int SENDER_PORT = 55555;
+    public static volatile int RECEIVER_PORT = 55556;
 
     // destination IP address - use "localhost" if running on the same machine
     public static volatile String SENDER_IP = "";
@@ -43,20 +45,34 @@ public class AudioDuplex {
             String ip = scanner.nextLine();
             SENDER_IP = ip;
         }
-        // Prompt for port if not set
-        if (SENDER_PORT == 0 || RECEIVER_PORT == 0) {
-            System.out.print("Enter port: ");
-            int port = scanner.nextInt();
-            SENDER_PORT = port;
-            RECEIVER_PORT = port;
-        }
 
         if (ENCRYPTION) {
-            // Start handshake threads
-            Thread hsSender = new Thread(new HandShakeSenderThread());
+            // Start handshake receiver thread first to listen for incoming handshake
             Thread hsReceiver = new Thread(new HandShakeReciverThread());
-            hsSender.start();
             hsReceiver.start();
+            // Wait for handshake to be received and IP/port set
+            while (!HANDSHAKE_RECEIVED) {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            // Prompt for IP/port only if not set by received handshake
+            if (SENDER_IP == null || SENDER_IP.isEmpty()) {
+                System.out.print("Enter IP address: ");
+                String ip = scanner.nextLine();
+                SENDER_IP = ip;
+            }
+            if (SENDER_PORT == 0) {
+                System.out.print("Enter port: ");
+                int port = scanner.nextInt();
+                SENDER_PORT = port;
+                RECEIVER_PORT = port;
+            }
+            // Start handshake sender thread
+            Thread hsSender = new Thread(new HandShakeSenderThread());
+            hsSender.start();
             // Wait for handshake to complete
             try {
                 hsSender.join();
@@ -64,13 +80,20 @@ public class AudioDuplex {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+        } else {
+            // Prompt for IP/port if encryption disabled
+            if (SENDER_IP == null || SENDER_IP.isEmpty()) {
+                System.out.print("Enter IP address: ");
+                String ip = scanner.nextLine();
+                SENDER_IP = ip;
+            }
+            if (SENDER_PORT == 0) {
+                System.out.print("Enter port: ");
+                int port = scanner.nextInt();
+                SENDER_PORT = port;
+                RECEIVER_PORT = port;
+            }
         }
-
-        // Start audio threads
-        AudioReceiverThread receiver = new AudioReceiverThread();
-        AudioSenderThread sender = new AudioSenderThread();
-        receiver.start();
-        sender.start();
 
         // Start exit listener thread
         new Thread(() -> {

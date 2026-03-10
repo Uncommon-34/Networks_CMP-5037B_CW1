@@ -18,7 +18,7 @@ public class HandShakeSenderThread implements Runnable {
 
     public void run() {
         try {
-            DatagramSocket socket = new DatagramSocket();
+            DatagramSocket socket = new DatagramSocket(AudioDuplex.RECEIVER_PORT);
             // Generate 256-bit private key
             BigInteger x = new BigInteger(256, new Random());
             // Compute public key A = G^x mod P
