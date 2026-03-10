@@ -26,7 +26,6 @@ public class HandShakeReciverThread implements Runnable {
                     "Handshake packet received from " + packet.getAddress() + ":" + packet.getPort());
             // Set IP and port from received packet for two-way communication
             AudioDuplex.SENDER_IP = packet.getAddress().getHostAddress();
-            AudioDuplex.RECEIVER_PORT = packet.getPort();
             ByteBuffer wrapped = ByteBuffer.wrap(packet.getData());
             int seq = wrapped.getInt();
             if (seq == -1) {

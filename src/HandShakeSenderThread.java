@@ -59,6 +59,8 @@ public class HandShakeSenderThread implements Runnable {
                 // Compute shared secret K = B^x mod P
                 BigInteger K = B.modPow(x, AudioDuplex.P);
                 AudioDuplex.KEY = K.mod(BigInteger.valueOf(Integer.MAX_VALUE)).toString();
+                System.out.println("Shared secret computed: " + AudioDuplex.KEY);
+                AudioDuplex.HANDSHAKE_RECEIVED = true;
             }
             socket.close();
         } catch (Exception e) {

@@ -61,6 +61,7 @@ public class AudioDuplex {
             AudioReceiverThread receiver = new AudioReceiverThread();
             AudioSenderThread sender = new AudioSenderThread();
 
+            System.out.println("Handshake complete. Starting audio threads with encryption.");
             receiver.start();
             sender.start();
         } else {
