@@ -22,9 +22,9 @@ public class AudioReceiverThread implements Runnable {
         thread.start();
     }
 
-    //Xor is symmetric so decryption is the same 
-    private byte[] decryptBlock(byte[] block){
-        if (AudioDuplex.KEY == null || AudioDuplex.KEY.isEmpty()){
+    // Xor is symmetric so decryption is the same
+    private byte[] decryptBlock(byte[] block) {
+        if (AudioDuplex.KEY == null || AudioDuplex.KEY.isEmpty()) {
             return block;
         }
 
@@ -33,15 +33,14 @@ public class AudioReceiverThread implements Runnable {
         ByteBuffer cipherText = ByteBuffer.wrap(block);
         ByteBuffer decrypted = ByteBuffer.allocate(block.length);
 
-        int numChunks = block.length /4;
-        for(int j = 0; j < numChunks; j++){
+        int numChunks = block.length / 4;
+        for (int j = 0; j < numChunks; j++) {
             int fourByte = cipherText.getInt();
-            int shiftAmount = j % 32; 
+            int shiftAmount = j % 32;
             int shiftedKey = (key << shiftAmount) | (key >>> (32 - shiftAmount));
             fourByte = fourByte ^ shiftedKey;
             decrypted.putInt(fourByte);
         }
-
 
         return decrypted.array();
 
@@ -69,7 +68,6 @@ public class AudioReceiverThread implements Runnable {
                     break;
             }
 
-
             receiving_socket.setSoTimeout((AudioDuplex.DEPTH * 32) + 100); //
             // as 1
             // block of audio takes roughly 32ms to play it dynamically
@@ -95,11 +93,9 @@ public class AudioReceiverThread implements Runnable {
 
         PrintWriter logWriter = null;
         try {
-            DateTimeFormatter formatter = DateTimeFormatter.
-                    ofPattern("dd-MM-yyyy_HH-mm-ss");
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy_HH-mm-ss");
             String timestamp = LocalDateTime.now().format(formatter);
-            logWriter = new PrintWriter(new FileWriter
-                    ("logs/packet-log_" + timestamp + ".txt"));
+            logWriter = new PrintWriter(new FileWriter("logs/packet-log_" + timestamp + ".txt"));
             logWriter.println("         --- PACKET LOG ---");
             logWriter.println("CHANNEL: DatagramSocket" + AudioDuplex.CHANNEL);
             logWriter.println("INTERLEAVER DEPTH: " + AudioDuplex.DEPTH);
@@ -140,12 +136,9 @@ public class AudioReceiverThread implements Runnable {
                 long sendTime = wrapped.getLong();
                 long delay = receiveTime - sendTime;
 
-                //extract encrypted audio payload 
+                // extract encrypted audio payload
                 byte[] encryptedAudio = new byte[512];
                 wrapped.get(encryptedAudio);
-
-                //decrypt audio payload 
-                byte[] audioBlock = decryptBlock(encryptedAudio);
 
                 String status;
                 if (sequenceNumber == expectedSeq) {
@@ -176,13 +169,13 @@ public class AudioReceiverThread implements Runnable {
                     packetsArrivedInGroup = 0;
 
                     // store new packet
-                    currentGroupPackets[index] = audioBlock;
+                    currentGroupPackets[index] = encryptedAudio;
                     arrived[index] = true;
                     packetsArrivedInGroup++;
                 } else if (group == expectedGroup) {
                     // when the packet belongs to the group
                     if (!arrived[index]) {
-                        currentGroupPackets[index] = audioBlock;
+                        currentGroupPackets[index] = encryptedAudio;
                         arrived[index] = true;
                         packetsArrivedInGroup++;
 
@@ -242,7 +235,7 @@ public class AudioReceiverThread implements Runnable {
     }
 
     private void playGroup(byte[][] packets, boolean[] arrived, int depth,
-                           AudioPlayer player) {
+            AudioPlayer player) {
         boolean anyArrived = false;
         for (boolean b : arrived) {
             if (b) {
@@ -258,33 +251,34 @@ public class AudioReceiverThread implements Runnable {
                 }
             } catch (IOException e) {
                 throw new RuntimeException(e);
-            } return;
+            }
+            return;
         }
 
         byte[][] reconstructed = new byte[depth][512];
         byte lastByte1 = 0;
         byte lastByte2 = 0;
 
-        for (int i = 0; i < 256*depth; i++) {
+        for (int i = 0; i < 256 * depth; i++) {
             int packetIndex = i % depth;
             int sampleIndex = i / depth;
             int blockOriginal = i / 256;
             int sampleOriginal = i % 256;
 
             if (arrived[packetIndex]) {
-                lastByte1 = packets[packetIndex][sampleIndex*2];
-                lastByte2 = packets[packetIndex][sampleIndex*2+1];
-                reconstructed[blockOriginal][sampleOriginal*2] = lastByte1;
-                reconstructed[blockOriginal][sampleOriginal*2+1] = lastByte2;
+                lastByte1 = packets[packetIndex][sampleIndex * 2];
+                lastByte2 = packets[packetIndex][sampleIndex * 2 + 1];
+                reconstructed[blockOriginal][sampleOriginal * 2] = lastByte1;
+                reconstructed[blockOriginal][sampleOriginal * 2 + 1] = lastByte2;
             } else {
-                reconstructed[blockOriginal][sampleOriginal*2] = lastByte1;
-                reconstructed[blockOriginal][sampleOriginal*2+1] = lastByte2;
+                reconstructed[blockOriginal][sampleOriginal * 2] = lastByte1;
+                reconstructed[blockOriginal][sampleOriginal * 2 + 1] = lastByte2;
             }
         }
 
         try {
             for (int i = 0; i < depth; i++) {
-                player.playBlock(reconstructed[i]);
+                player.playBlock(decryptBlock(reconstructed[i]));
             }
         } catch (IOException e) {
             throw new RuntimeException(e);

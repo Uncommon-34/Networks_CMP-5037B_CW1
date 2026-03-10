@@ -21,8 +21,9 @@ public class AudioDuplex {
     // interleaver depth - values: 2, 3, 4
     public static volatile int DEPTH = 1;
 
-    public static volatile String KEY = "2147483647"; // enchryption key, must match on sender and receiver for audio to be
-                                            // leave as "" to skip encryption 
+    public static volatile String KEY = "45637286578236578236572365ygwefg72tr6t"; // enchryption key, must match
+                                                                                  // sender and receiver for audio to be
+    // leave as "" to skip encryption
 
     public static void main(String[] args) {
 

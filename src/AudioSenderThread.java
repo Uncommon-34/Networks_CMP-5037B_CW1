@@ -20,10 +20,9 @@ public class AudioSenderThread implements Runnable {
         thread.start();
     }
 
-
-    private byte[] encryptBlock(byte[] block){
-        if (AudioDuplex.KEY == null || AudioDuplex.KEY.isEmpty()){
-            return block; //if no key configured skips encryption 
+    private byte[] encryptBlock(byte[] block) {
+        if (AudioDuplex.KEY == null || AudioDuplex.KEY.isEmpty()) {
+            return block; // if no key configured skips encryption
         }
 
         int key = Integer.parseInt(AudioDuplex.KEY);
@@ -32,16 +31,17 @@ public class AudioSenderThread implements Runnable {
         ByteBuffer encrypted = ByteBuffer.allocate(block.length);
 
         int numChunks = block.length / 4;
-        for (int j =0; j < numChunks; j++) {
+        for (int j = 0; j < numChunks; j++) {
             int fourByte = plainText.getInt();
             int shiftAmount = j % 32;
-            //bits shifted out of the left re-enter on the right 
+            // bits shifted out of the left re-enter on the right
             int shiftedKey = (key << shiftAmount) | (key >>> (32 - shiftAmount));
             fourByte = fourByte ^ shiftedKey;
             encrypted.putInt(fourByte);
         }
         return encrypted.array();
     }
+
     public void run() {
 
         InetAddress clientIP = null;
@@ -51,10 +51,10 @@ public class AudioSenderThread implements Runnable {
         int depth = AudioDuplex.DEPTH;
 
         try {
-            //update tomatch client ip
+            // update tomatch client ip
             clientIP = InetAddress.getByName(AudioDuplex.IP);
 
-            //---------------- Switch Channels Here ----------------
+            // ---------------- Switch Channels Here ----------------
 
             switch (AudioDuplex.CHANNEL) {
                 case 1:
@@ -94,7 +94,7 @@ public class AudioSenderThread implements Runnable {
                 // buffer for the audio blocks
                 byte[][] bufferedBlocks = new byte[depth][512];
                 for (int i = 0; i < depth; i++) {
-                    bufferedBlocks[i] = recorder.getBlock();
+                    bufferedBlocks[i] = encryptBlock(recorder.getBlock());
                 }
 
                 byte[][] interleavePackets = new byte[depth][512];
@@ -107,15 +107,14 @@ public class AudioSenderThread implements Runnable {
                     int blockOriginal = i / 256;
                     int sampleOriginal = i % 256;
 
-                    interleavePackets[packetIndex][sampleIndex*2] =
-                            bufferedBlocks[blockOriginal][sampleOriginal*2];
-                    interleavePackets[packetIndex][sampleIndex*2+1] =
-                            bufferedBlocks[blockOriginal][sampleOriginal*2+1];
+                    interleavePackets[packetIndex][sampleIndex * 2] = bufferedBlocks[blockOriginal][sampleOriginal * 2];
+                    interleavePackets[packetIndex][sampleIndex * 2
+                            + 1] = bufferedBlocks[blockOriginal][sampleOriginal * 2 + 1];
                 }
 
                 // burst sends the packets
                 for (int i = 0; i < depth; i++) {
-                    ByteBuffer buffer = ByteBuffer.allocate(4+8+512);
+                    ByteBuffer buffer = ByteBuffer.allocate(4 + 8 + 512);
                     buffer.putInt(sequenceNumber);
                     buffer.putLong(System.currentTimeMillis());
                     buffer.put(interleavePackets[i]);
