@@ -8,6 +8,7 @@ import java.net.*;
 import java.nio.ByteBuffer;
 import java.math.BigInteger;
 import java.util.Random;
+import java.util.Scanner;
 
 public class HandShakeSenderThread implements Runnable {
 
@@ -18,7 +19,14 @@ public class HandShakeSenderThread implements Runnable {
 
     public void run() {
         try {
-            DatagramSocket socket = new DatagramSocket(AudioDuplex.RECEIVER_PORT);
+            // Prompt for IP/port only if not set by received handshake
+            Scanner scanner = new Scanner(System.in);
+            if (AudioDuplex.SENDER_IP == null || AudioDuplex.SENDER_IP.isEmpty()) {
+                System.out.print("Enter IP address: ");
+                String ip = scanner.nextLine();
+                AudioDuplex.SENDER_IP = ip;
+            }
+            DatagramSocket socket = new DatagramSocket(AudioDuplex.SENDER_PORT);
             // Generate 256-bit private key
             BigInteger x = new BigInteger(256, new Random());
             // Compute public key A = G^x mod P
@@ -31,7 +39,7 @@ public class HandShakeSenderThread implements Runnable {
             buffer.put(data);
             byte[] packetData = buffer.array();
             DatagramPacket packet = new DatagramPacket(packetData, packetData.length,
-                    InetAddress.getByName(AudioDuplex.SENDER_IP), AudioDuplex.SENDER_PORT);
+                    InetAddress.getByName(AudioDuplex.SENDER_IP), AudioDuplex.RECEIVER_PORT);
             socket.send(packet);
             System.out.println("Public key generated and handshake packet sent to " + AudioDuplex.SENDER_IP + ":"
                     + AudioDuplex.SENDER_PORT);

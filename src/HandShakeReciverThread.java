@@ -18,7 +18,7 @@ public class HandShakeReciverThread implements Runnable {
 
     public void run() {
         try {
-            DatagramSocket socket = new DatagramSocket(AudioDuplex.SENDER_PORT);
+            DatagramSocket socket = new DatagramSocket(AudioDuplex.RECEIVER_PORT);
             byte[] buf = new byte[524];
             DatagramPacket packet = new DatagramPacket(buf, buf.length);
             socket.receive(packet);
@@ -27,7 +27,6 @@ public class HandShakeReciverThread implements Runnable {
             // Set IP and port from received packet for two-way communication
             AudioDuplex.SENDER_IP = packet.getAddress().getHostAddress();
             AudioDuplex.SENDER_PORT = packet.getPort();
-            AudioDuplex.HANDSHAKE_RECEIVED = true;
             ByteBuffer wrapped = ByteBuffer.wrap(packet.getData());
             int seq = wrapped.getInt();
             if (seq == -1) {
@@ -53,6 +52,7 @@ public class HandShakeReciverThread implements Runnable {
                 BigInteger K = B.modPow(y, AudioDuplex.P);
                 AudioDuplex.KEY = K.mod(BigInteger.valueOf(Integer.MAX_VALUE)).toString();
                 System.out.println("Shared secret computed: " + AudioDuplex.KEY);
+                AudioDuplex.HANDSHAKE_RECEIVED = true;
             }
             socket.close();
         } catch (Exception e) {
