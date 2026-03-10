@@ -19,6 +19,8 @@ public class AudioDuplex {
     public static volatile int DEPTH = 2;
     // set to false to disable encryption and key exchange
     public static volatile boolean ENCRYPTION = true;
+    // set to false to disable decryption
+    public static volatile boolean DECRYPTION = true;
 
     // port used for both sending and receiving packets
     public static volatile int RECEIVER_PORT = 55556;
