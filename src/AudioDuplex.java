@@ -4,59 +4,65 @@ Author's: CaileyGR, HarryT,
 Notes: Packet interleaver implementation and Diffie-Hellman key exchange implementation
 */
 
-//Encryption branch 
 import java.util.Scanner;
 import java.math.BigInteger;
 import java.net.*;
 import java.nio.ByteBuffer;
 
 public class AudioDuplex {
-    // can be 1, 2, 3, or 4 to select which datagram socket to use
-    public static volatile int CHANNEL = 1;
-    // controls sender and receiver loops - set to false to stop both threads
-    public static volatile boolean RUNNING = true;
-    // interleaver depth - values: 2, 3, 4 - 1 technically disables interleaving
-    public static volatile int DEPTH = 2;
-    // set to false to disable encryption and key exchange
-    public static volatile boolean ENCRYPTION = true;
-    // set to false to disable decryption
-    public static volatile boolean DECRYPTION = true;
 
-    // port used for both sending and receiving packets
+    // 1, 2, 3, or 4 — selects which DatagramSocket implementation to use
+    public static volatile int CHANNEL = 1;
+
+    // Set to false to stop both sender and receiver loops
+    public static volatile boolean RUNNING = true;
+
+    // Interleaver depth — 2, 3, or 4. Higher = more burst loss resilience, more latency
+    public static volatile int DEPTH = 2;
+
+    // Set to false to send audio unencrypted
+    public static volatile boolean ENCRYPTION = true;
+
+    public static volatile boolean DECRYPTION = false;
+
+    // Port for audio packets
     public static volatile int A_PORT = 5555;
+
+    // Port for handshake packets
     public static volatile int H_PORT = 4444;
 
-    // destination IP address - use "localhost" if running on the same machine
+    // Destination IP — set at runtime via handshake or manual input
     public static volatile String SENDER_IP = "";
 
-    // flag to indicate handshake received
+    // Set to true once Diffie-Hellman handshake completes on both sides
     public static volatile boolean HANDSHAKE_RECEIVED = false;
 
-    // encryption key, must match sender and receiver for audio to be leave as ""
-    // to skip encryption
+    // Shared encryption key derived from Diffie-Hellman — set automatically by handshake threads
     public static volatile String KEY = "";
 
     // Diffie-Hellman parameters
+    // P is a 512-bit safe prime — large enough to make discrete logarithm computationally infeasible
     public static final BigInteger P = new BigInteger(
             "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
                     "29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
                     "EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
                     "E485B576625E7EC6F44C42E9A63A3620FFFFFFFFFFFFFFFF",
             16);
+    // G is the generator — standard value of 2 used in Diffie-Hellman
     public static final BigInteger G = BigInteger.valueOf(2);
 
     public static void main(String[] args) {
         if (ENCRYPTION || DECRYPTION) {
-            // Start handshake receiver thread first to listen for incoming handshake
+            // Start handshake receiver first so it is listening before sender transmits
             Thread hsReceiver = new Thread(new HandShakeReciverThread());
             hsReceiver.start();
 
-            // Start handshake sender thread
+            // Start handshake sender — prompts for IP if not already set
             Thread hsSender = new Thread(new HandShakeSenderThread());
             hsSender.start();
 
+            // Block until Diffie-Hellman completes and KEY is set on both sides
             while (!HANDSHAKE_RECEIVED) {
-                // Wait for handshake to complete before starting audio threads
                 try {
                     Thread.sleep(100);
                 } catch (InterruptedException e) {
@@ -67,21 +73,23 @@ public class AudioDuplex {
             hsSender.interrupt();
             hsReceiver.interrupt();
 
+            System.out.println("Handshake complete. Starting audio threads with encryption.");
+            System.out.println("Shared secret computed: " + AudioDuplex.KEY);
+
             AudioReceiverThread receiver = new AudioReceiverThread();
             AudioSenderThread sender = new AudioSenderThread();
 
-            System.out.println("Handshake complete. Starting audio threads with encryption.");
-            System.out.println("Shared secret computed: " + AudioDuplex.KEY);
             receiver.start();
             sender.start();
+
         } else {
+            // No encryption — just prompt for IP and start audio threads directly
             Scanner scanner = new Scanner(System.in);
             if (AudioDuplex.SENDER_IP == null || AudioDuplex.SENDER_IP.isEmpty()) {
                 System.out.print("Enter IP address: ");
-                String ip = scanner.nextLine();
-                AudioDuplex.SENDER_IP = ip;
+                AudioDuplex.SENDER_IP = scanner.nextLine();
             }
-            // Start audio threads without encryption
+
             AudioReceiverThread receiver = new AudioReceiverThread();
             AudioSenderThread sender = new AudioSenderThread();
 
@@ -89,17 +97,17 @@ public class AudioDuplex {
             sender.start();
         }
 
-        // Start exit listener thread
+        // Exit listener — type "exit" in console to cleanly end the call on both machines
         new Thread(() -> {
             Scanner s = new Scanner(System.in);
             while (RUNNING) {
                 String input = s.nextLine();
                 if ("exit".equals(input)) {
-                    // Send exit packet to other client
+                    // Send exit packet to other machine so it also stops cleanly
                     try {
                         DatagramSocket socket = new DatagramSocket();
                         ByteBuffer buffer = ByteBuffer.allocate(4 + 8 + 512);
-                        buffer.putInt(-2);
+                        buffer.putInt(-2); // reserved sequence number — signals exit
                         buffer.putLong(System.currentTimeMillis());
                         byte[] packetData = buffer.array();
                         DatagramPacket packet = new DatagramPacket(packetData, packetData.length,

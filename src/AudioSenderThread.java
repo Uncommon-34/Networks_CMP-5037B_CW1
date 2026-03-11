@@ -20,10 +20,9 @@ public class AudioSenderThread implements Runnable {
         thread.start();
     }
 
-    // Encrypt audio block using XOR with shifted key
     private byte[] encryptBlock(byte[] block) {
         if (AudioDuplex.KEY == null || AudioDuplex.KEY.isEmpty()) {
-            return block; // if no key configured skips encryption
+            return block;
         }
 
         int key = Integer.parseInt(AudioDuplex.KEY);
@@ -35,7 +34,8 @@ public class AudioSenderThread implements Runnable {
         for (int j = 0; j < numChunks; j++) {
             int fourByte = plainText.getInt();
             int shiftAmount = j % 32;
-            // bits shifted out of the left re-enter on the right
+            // Circular left shift — bits that fall off the left wrap to the right,
+            // so no key bits are ever lost unlike a plain << shift
             int shiftedKey = (key << shiftAmount) | (key >>> (32 - shiftAmount));
             fourByte = fourByte ^ shiftedKey;
             encrypted.putInt(fourByte);
@@ -47,12 +47,10 @@ public class AudioSenderThread implements Runnable {
 
         InetAddress clientIP = null;
         AudioRecorder recorder = null;
-
         int sequenceNumber = 0;
         int depth = AudioDuplex.DEPTH;
 
         try {
-            // update tomatch client ip
             clientIP = InetAddress.getByName(AudioDuplex.SENDER_IP);
 
             // Select socket type based on channel
@@ -74,8 +72,7 @@ public class AudioSenderThread implements Runnable {
                     break;
             }
         } catch (Exception e) {
-            System.out.println("ERROR: AudioSender: " +
-                    "Could not initialize socket.");
+            System.out.println("ERROR: AudioSender: Could not initialize socket.");
             e.printStackTrace();
             System.exit(0);
         }
@@ -83,23 +80,23 @@ public class AudioSenderThread implements Runnable {
         try {
             recorder = new AudioRecorder();
         } catch (Exception e) {
-            System.out.println("ERROR: AudioSender: " +
-                    "Could not initialize microphone.");
+            System.out.println("ERROR: AudioSender: Could not initialize microphone.");
             e.printStackTrace();
             System.exit(0);
         }
 
         while (AudioDuplex.RUNNING) {
             try {
-                // Record and encrypt audio blocks
+                //  Record raw plaintext audio blocks
                 byte[][] bufferedBlocks = new byte[depth][512];
                 for (int i = 0; i < depth; i++) {
-                    bufferedBlocks[i] = encryptBlock(recorder.getBlock());
+                    bufferedBlocks[i] = recorder.getBlock();
                 }
 
+                // 
+                
                 byte[][] interleavePackets = new byte[depth][512];
 
-                // Interleave the audio samples across packets
                 for (int i = 0; i < 256 * depth; i++) {
                     int packetIndex = i % depth;
                     int sampleIndex = i / depth;
@@ -107,16 +104,15 @@ public class AudioSenderThread implements Runnable {
                     int sampleOriginal = i % 256;
 
                     interleavePackets[packetIndex][sampleIndex * 2] = bufferedBlocks[blockOriginal][sampleOriginal * 2];
-                    interleavePackets[packetIndex][sampleIndex * 2
-                            + 1] = bufferedBlocks[blockOriginal][sampleOriginal * 2 + 1];
+                    interleavePackets[packetIndex][sampleIndex * 2 + 1] = bufferedBlocks[blockOriginal][sampleOriginal * 2 + 1];
                 }
 
-                // Send interleaved packets
+                // Encrypt each interleaved packet and send
                 for (int i = 0; i < depth; i++) {
                     ByteBuffer buffer = ByteBuffer.allocate(4 + 8 + 512);
                     buffer.putInt(sequenceNumber);
                     buffer.putLong(System.currentTimeMillis());
-                    buffer.put(interleavePackets[i]);
+                    buffer.put(encryptBlock(interleavePackets[i]));
 
                     byte[] packetData = buffer.array();
                     DatagramPacket packet = new DatagramPacket(packetData,
@@ -130,6 +126,7 @@ public class AudioSenderThread implements Runnable {
                 e.printStackTrace();
             }
         }
+
         sending_socket.close();
     }
 }
