@@ -39,9 +39,10 @@ public class HandShakeReciverThread implements Runnable {
                 // Compute public key A = G^y mod P
                 BigInteger A = AudioDuplex.G.modPow(y, AudioDuplex.P);
                 // Send public key back
-                ByteBuffer buffer = ByteBuffer.allocate(4 + 8 + 512);
+                ByteBuffer buffer = ByteBuffer.allocate(4 + 8 + 4 + bData.length);
                 buffer.putInt(-1);
                 buffer.putLong(System.currentTimeMillis());
+                buffer.putInt(bData.length);
                 byte[] data = A.toByteArray();
                 buffer.put(data);
                 byte[] packetData = buffer.array();

@@ -56,9 +56,10 @@ public class HandShakeSenderThread implements Runnable {
             ByteBuffer wrapped = ByteBuffer.wrap(recvPacket.getData());
             int seq = wrapped.getInt();
             if (seq == -1) {
-                byte[] bData = new byte[512];
-                wrapped.position(12); // skip seq and time
-                wrapped.get(bData, 0, Math.min(bData.length, wrapped.remaining()));
+                wrapped.position(12);
+                int len = wrapped.getInt();
+                byte[] bData = new byte[len];
+                wrapped.get(bData);
                 BigInteger B = new BigInteger(bData);
                 // Compute shared secret K = B^x mod P
                 BigInteger K = B.modPow(x, AudioDuplex.P);
