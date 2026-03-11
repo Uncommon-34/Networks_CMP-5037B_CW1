@@ -23,7 +23,8 @@ public class AudioDuplex {
     public static volatile boolean DECRYPTION = true;
 
     // port used for both sending and receiving packets
-    public static volatile int PORT = 5555;
+    public static volatile int A_PORT = 5555;
+    public static volatile int H_PORT = 4444;
 
     // destination IP address - use "localhost" if running on the same machine
     public static volatile String SENDER_IP = "";
@@ -96,7 +97,7 @@ public class AudioDuplex {
                         buffer.putLong(System.currentTimeMillis());
                         byte[] packetData = buffer.array();
                         DatagramPacket packet = new DatagramPacket(packetData, packetData.length,
-                                InetAddress.getByName(SENDER_IP), PORT);
+                                InetAddress.getByName(SENDER_IP), A_PORT);
                         socket.send(packet);
                         socket.close();
                     } catch (Exception e) {

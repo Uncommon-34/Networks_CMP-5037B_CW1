@@ -18,7 +18,7 @@ public class HandShakeReciverThread implements Runnable {
 
     public void run() {
         try {
-            DatagramSocket socket = new DatagramSocket(AudioDuplex.PORT);
+            DatagramSocket socket = new DatagramSocket(AudioDuplex.H_PORT);
             byte[] buf = new byte[524];
             DatagramPacket packet = new DatagramPacket(buf, buf.length);
             socket.receive(packet);

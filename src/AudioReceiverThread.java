@@ -24,7 +24,7 @@ public class AudioReceiverThread implements Runnable {
 
     // Decrypt audio block using XOR with shifted key
     private byte[] decryptBlock(byte[] block) {
-        if (!AudioDuplex.DECRYPTION ||AudioDuplex.KEY == null || AudioDuplex.KEY.isEmpty()) {
+        if (!AudioDuplex.DECRYPTION || AudioDuplex.KEY == null || AudioDuplex.KEY.isEmpty()) {
             return block;
         }
 
@@ -105,19 +105,19 @@ public class AudioReceiverThread implements Runnable {
             // Select socket type based on channel
             switch (AudioDuplex.CHANNEL) {
                 case 1:
-                    receiving_socket = new DatagramSocket(AudioDuplex.PORT);
+                    receiving_socket = new DatagramSocket(AudioDuplex.A_PORT);
                     break;
                 case 2:
-                    receiving_socket = new DatagramSocket2(AudioDuplex.PORT);
+                    receiving_socket = new DatagramSocket2(AudioDuplex.A_PORT);
                     break;
                 case 3:
-                    receiving_socket = new DatagramSocket3(AudioDuplex.PORT);
+                    receiving_socket = new DatagramSocket3(AudioDuplex.A_PORT);
                     break;
                 case 4:
-                    receiving_socket = new DatagramSocket4(AudioDuplex.PORT);
+                    receiving_socket = new DatagramSocket4(AudioDuplex.A_PORT);
                     break;
                 default:
-                    receiving_socket = new DatagramSocket(AudioDuplex.PORT);
+                    receiving_socket = new DatagramSocket(AudioDuplex.A_PORT);
                     break;
             }
 
