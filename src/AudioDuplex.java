@@ -37,11 +37,16 @@ public class AudioDuplex {
     public static volatile String KEY = "";
 
     // Diffie-Hellman parameters
-    public static final BigInteger P = BigInteger.probablePrime(256, new java.util.Random(42));
+    public static final BigInteger P = new BigInteger(
+            "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
+                    "29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
+                    "EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
+                    "E485B576625E7EC6F44C42E9A63A3620FFFFFFFFFFFFFFFF",
+            16);
     public static final BigInteger G = BigInteger.valueOf(2);
 
     public static void main(String[] args) {
-        if (ENCRYPTION) {
+        if (ENCRYPTION || DECRYPTION) {
             // Start handshake receiver thread first to listen for incoming handshake
             Thread hsReceiver = new Thread(new HandShakeReciverThread());
             hsReceiver.start();
@@ -66,6 +71,7 @@ public class AudioDuplex {
             AudioSenderThread sender = new AudioSenderThread();
 
             System.out.println("Handshake complete. Starting audio threads with encryption.");
+            System.out.println("Shared secret computed: " + AudioDuplex.KEY);
             receiver.start();
             sender.start();
         } else {
