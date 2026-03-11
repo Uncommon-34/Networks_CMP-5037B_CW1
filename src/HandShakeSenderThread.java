@@ -29,7 +29,7 @@ public class HandShakeSenderThread implements Runnable {
             System.out.println(
                     "[HS] thread started, sending handshake packet to " + AudioDuplex.SENDER_IP + ":"
                             + AudioDuplex.PORT);
-            DatagramSocket socket = new DatagramSocket(AudioDuplex.PORT);
+            DatagramSocket socket = new DatagramSocket();
             // Generate 256-bit private key
             BigInteger x = new BigInteger(256, new Random());
             // Compute public key A = G^x mod P
