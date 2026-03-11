@@ -105,19 +105,19 @@ public class AudioReceiverThread implements Runnable {
             // Select socket type based on channel
             switch (AudioDuplex.CHANNEL) {
                 case 1:
-                    receiving_socket = new DatagramSocket(AudioDuplex.RECEIVER_PORT);
+                    receiving_socket = new DatagramSocket(AudioDuplex.PORT);
                     break;
                 case 2:
-                    receiving_socket = new DatagramSocket2(AudioDuplex.RECEIVER_PORT);
+                    receiving_socket = new DatagramSocket2(AudioDuplex.PORT);
                     break;
                 case 3:
-                    receiving_socket = new DatagramSocket3(AudioDuplex.RECEIVER_PORT);
+                    receiving_socket = new DatagramSocket3(AudioDuplex.PORT);
                     break;
                 case 4:
-                    receiving_socket = new DatagramSocket4(AudioDuplex.RECEIVER_PORT);
+                    receiving_socket = new DatagramSocket4(AudioDuplex.PORT);
                     break;
                 default:
-                    receiving_socket = new DatagramSocket(AudioDuplex.RECEIVER_PORT);
+                    receiving_socket = new DatagramSocket(AudioDuplex.PORT);
                     break;
             }
 

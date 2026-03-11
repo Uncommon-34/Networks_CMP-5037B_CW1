@@ -21,7 +21,7 @@ public class AudioDuplex {
     public static volatile boolean ENCRYPTION = true;
 
     // port used for both sending and receiving packets
-    public static volatile int RECEIVER_PORT = 55556;
+    public static volatile int PORT = 5555;
 
     // destination IP address - use "localhost" if running on the same machine
     public static volatile String SENDER_IP = "";
@@ -42,6 +42,7 @@ public class AudioDuplex {
             // Start handshake receiver thread first to listen for incoming handshake
             Thread hsReceiver = new Thread(new HandShakeReciverThread());
             hsReceiver.start();
+
             // Start handshake sender thread
             Thread hsSender = new Thread(new HandShakeSenderThread());
             hsSender.start();
@@ -93,7 +94,7 @@ public class AudioDuplex {
                         buffer.putLong(System.currentTimeMillis());
                         byte[] packetData = buffer.array();
                         DatagramPacket packet = new DatagramPacket(packetData, packetData.length,
-                                InetAddress.getByName(SENDER_IP), RECEIVER_PORT);
+                                InetAddress.getByName(SENDER_IP), PORT);
                         socket.send(packet);
                         socket.close();
                     } catch (Exception e) {
