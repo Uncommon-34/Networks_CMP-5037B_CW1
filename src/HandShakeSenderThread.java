@@ -6,8 +6,8 @@ Notes: Diffier-Hellman key exchange implementation
 
 import java.net.*;
 import java.nio.ByteBuffer;
+import java.security.SecureRandom;
 import java.math.BigInteger;
-import java.util.Random;
 import java.util.Scanner;
 
 public class HandShakeSenderThread implements Runnable {
@@ -31,7 +31,8 @@ public class HandShakeSenderThread implements Runnable {
                             + AudioDuplex.H_PORT);
             DatagramSocket socket = new DatagramSocket();
             // Generate 256-bit private key
-            BigInteger x = new BigInteger(256, new Random());
+            SecureRandom secureRandom = new SecureRandom();
+            BigInteger x = new BigInteger(256, secureRandom);
             // Compute public key A = G^x mod P
             BigInteger A = AudioDuplex.G.modPow(x, AudioDuplex.P);
             // Send public key in packet
