@@ -92,7 +92,6 @@ public class AudioReceiverThread implements Runnable {
         try {
             for (int i = 0; i < depth; i++) {
                 player.playBlock(decryptBlock(reconstructed[i]));
-                // player.playBlock(reconstructed[i]);
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
