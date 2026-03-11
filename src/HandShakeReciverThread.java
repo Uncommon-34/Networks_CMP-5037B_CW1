@@ -29,9 +29,10 @@ public class HandShakeReciverThread implements Runnable {
             ByteBuffer wrapped = ByteBuffer.wrap(packet.getData());
             int seq = wrapped.getInt();
             if (seq == -1) {
-                byte[] bData = new byte[512];
                 wrapped.position(12);
-                wrapped.get(bData, 0, Math.min(bData.length, wrapped.remaining()));
+                int len = wrapped.getInt();
+                byte[] bData = new byte[len];
+                wrapped.get(bData);
                 BigInteger B = new BigInteger(bData);
                 // Generate 256-bit private key
                 BigInteger y = new BigInteger(256, new Random());

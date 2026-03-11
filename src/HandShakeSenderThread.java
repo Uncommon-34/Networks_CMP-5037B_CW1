@@ -35,10 +35,11 @@ public class HandShakeSenderThread implements Runnable {
             // Compute public key A = G^x mod P
             BigInteger A = AudioDuplex.G.modPow(x, AudioDuplex.P);
             // Send public key in packet
-            ByteBuffer buffer = ByteBuffer.allocate(4 + 8 + 512);
+            byte[] data = A.toByteArray();
+            ByteBuffer buffer = ByteBuffer.allocate(4 + 8 + 4 + data.length);
             buffer.putInt(-1);
             buffer.putLong(System.currentTimeMillis());
-            byte[] data = A.toByteArray();
+            buffer.putInt(data.length);
             buffer.put(data);
             byte[] packetData = buffer.array();
             DatagramPacket packet = new DatagramPacket(packetData, packetData.length,
