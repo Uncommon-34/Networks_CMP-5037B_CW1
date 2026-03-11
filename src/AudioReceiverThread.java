@@ -24,7 +24,7 @@ public class AudioReceiverThread implements Runnable {
 
     // Decrypt audio block using XOR with shifted key
     private byte[] decryptBlock(byte[] block) {
-        if (AudioDuplex.KEY == null || AudioDuplex.KEY.isEmpty()) {
+        if (!AudioDuplex.DECRYPTION ||AudioDuplex.KEY == null || AudioDuplex.KEY.isEmpty()) {
             return block;
         }
 

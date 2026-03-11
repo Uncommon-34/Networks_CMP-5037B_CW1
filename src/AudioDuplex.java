@@ -19,6 +19,8 @@ public class AudioDuplex {
     public static volatile int DEPTH = 2;
     // set to false to disable encryption and key exchange
     public static volatile boolean ENCRYPTION = true;
+    // set to false to disable decryption
+    public static volatile boolean DECRYPTION = true;
 
     // port used for both sending and receiving packets
     public static volatile int PORT = 5555;
@@ -31,7 +33,7 @@ public class AudioDuplex {
 
     // encryption key, must match sender and receiver for audio to be leave as ""
     // to skip encryption
-    public static volatile String KEY;
+    public static volatile String KEY = "2147483647";
 
     // Diffie-Hellman parameters
     public static final BigInteger P = BigInteger.probablePrime(256, new java.util.Random(42));
