@@ -27,7 +27,7 @@ public class AudioDuplex {
     public static volatile int H_PORT = 4444;
 
     // destination IP address - use "localhost" if running on the same machine
-    public static volatile String SENDER_IP = "localhost";
+    public static volatile String SENDER_IP = "";
 
     // flag to indicate handshake received
     public static volatile boolean HANDSHAKE_RECEIVED = false;
